@@ -94,17 +94,15 @@ def __perform_ontology_embedding(config):
         classes = projection.getClassURIs()
         individuals = projection.getIndividualURIs()
         entities = classes.union(individuals)
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'entities.txt'), 'w') as f:
-            for e in entities:
-                f.write('%s\n' % e)
+ #       with open(os.path.join(config['DOCUMENT']['cache_dir'], 'entities.txt'), 'w', encoding="utf-8") as f:
+ #           for e in entities:
 
     # Extract axioms in Manchester Syntax if it is not pre_axiom_file is not set
     if 'pre_axiom_file' not in config['DOCUMENT']:
         logging.info('Extract axioms ...')
         projection.createManchesterSyntaxAxioms()
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'axioms.txt'), 'w') as f:
-            for ax in projection.axioms_manchester:
-                f.write('%s\n' % ax)
+#        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'axioms.txt'), 'w', encoding="utf-8") as f:
+#            for ax in projection.axioms_manchester:
 
     # If pre_annotation_file is set, directly read annotations
     # else, read annotations including rdfs:label and other literals from the ontology
@@ -113,7 +111,7 @@ def __perform_ontology_embedding(config):
     uri_label, uri_to_labels, annotations = dict(), dict(), list()
 
     if 'pre_annotation_file' in config['DOCUMENT']:
-        with open(config['DOCUMENT']['pre_annotation_file']) as f:
+        with open(config['DOCUMENT']['pre_annotation_file'], encoding="utf-8") as f:
             for line in f.readlines():
                 tmp = line.strip().split()
                 if tmp[1] == 'http://www.w3.org/2000/01/rdf-schema#label':
@@ -158,13 +156,11 @@ def __perform_ontology_embedding(config):
                         annotation = [e] + v.split()
                         annotations.append(annotation)
 
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'annotations.txt'), 'w') as f:
-            for e in projection.entityToPreferredLabels:
-                for v in projection.entityToPreferredLabels[e]:
-                    f.write('%s preferred_label %s\n' % (e, v))
-            for a in annotations:
-                f.write('%s\n' % ' '.join(a))
-
+ #       with open(os.path.join(config['DOCUMENT']['cache_dir'], 'annotations.txt'), 'w', encoding="utf-8") as f:
+ #           for e in projection.entityToPreferredLabels:
+ #               for v in projection.entityToPreferredLabels[e]:
+ #           for a in annotations:
+    logging.info("EXPOTED ANNOTATIONS")
     # read URI document
     # two parts: walks, axioms (if the axiom file exists)
     walk_sentences, axiom_sentences, URI_Doc = list(), list(), list()
@@ -299,13 +295,11 @@ def __perform_ontology_embedding(config):
 
 
     #Save all_doc (optional): default: no
-    if config['DOCUMENT']['save_document'] == 'yes':
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'document_sentences.txt'), 'w') as f:
-            for sentence in all_doc:
-                for w in sentence:
-                    f.write('%s ' % w)
-                f.write('\n')
-            f.close()
+ #   if config['DOCUMENT']['save_document'] == 'yes':
+ #       with open(os.path.join(config['DOCUMENT']['cache_dir'], 'document_sentences.txt'), 'w', encoding="utf-8") as f:
+ #           for sentence in all_doc:
+
+ #           f.close()
 
 
     # learn the language model (train a new model or fine tune the pre-trained model)
@@ -360,18 +354,16 @@ def __perform_joint_ontology_embedding(config):
         classes = projection.getClassURIs()
         individuals = projection.getIndividualURIs()
         entities = classes.union(individuals)
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'entities.txt'), 'a') as f:
-            for e in entities:
-                f.write('%s\n' % e)
+ #       with open(os.path.join(config['DOCUMENT']['cache_dir'], 'entities.txt'), 'a', encoding="utf-8") as f:
+ #           for e in entities:
 
         # Extract and save axioms in Manchester Syntax
         logging.info('... Extract axioms ...')
         projection.createManchesterSyntaxAxioms()
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'axioms.txt'), 'a') as f:
-            for ax in projection.axioms_manchester:
-                axiom_sentence = [item for item in ax.split()]
-                axiom_sentences.append(axiom_sentence)
-                f.write('%s\n' % ax)
+#        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'axioms.txt'), 'a', encoding="utf-8") as f:
+        for ax in projection.axioms_manchester:
+            axiom_sentence = [item for item in ax.split()]
+            axiom_sentences.append(axiom_sentence)
         logging.info('... %d axioms ...' % len(axiom_sentences))
 
         # Read annotations including rdfs:label and other literals from the ontology
@@ -379,22 +371,20 @@ def __perform_joint_ontology_embedding(config):
         #                        2) None label annotations as sentences of the literal document
         logging.info('... Extract annotations ...')
         projection.indexAnnotations()
-        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'annotations.txt'), 'a') as f:
-            for e in entities:
-                if e in projection.entityToPreferredLabels and len(projection.entityToPreferredLabels[e]) > 0:
-                    label = list(projection.entityToPreferredLabels[e])[0]
-                    v = pre_process_words(words=label.split())
-                    uri_label[e] = v
-                    f.write('%s preferred_label %s\n' % (e, v))
-            for e in entities:
-                if e in projection.entityToAllLexicalLabels:
-                    for v in projection.entityToAllLexicalLabels[e]:
-                        if (v is not None) and \
-                            (not (e in projection.entityToPreferredLabels and v in projection.entityToPreferredLabels[
-                                e])):
-                            annotation = [e] + v.split()
-                            annotations.append(annotation)
-                            f.write('%s\n' % ' '.join(annotation))
+#        with open(os.path.join(config['DOCUMENT']['cache_dir'], 'annotations.txt'), 'a', encoding="utf-8") as f:
+#            for e in entities:
+#                if e in projection.entityToPreferredLabels and len(projection.entityToPreferredLabels[e]) > 0:
+#                    label = list(projection.entityToPreferredLabels[e])[0]
+#                    v = pre_process_words(words=label.split())
+#                    uri_label[e] = v
+#            for e in entities:
+#                if e in projection.entityToAllLexicalLabels:
+#                    for v in projection.entityToAllLexicalLabels[e]:
+#                        if (v is not None) and \
+#                            (not (e in projection.entityToPreferredLabels and v in projection.entityToPreferredLabels[
+#                                e])):
+#                            annotation = [e] + v.split()
+#                            annotations.append(annotation)
 
         # project ontology to RDF graph (optionally) and extract walks
         if 'ontology_projection' in config['DOCUMENT'] and config['DOCUMENT']['ontology_projection'] == 'yes':
