@@ -7,6 +7,7 @@ from owlready2 import get_ontology
 import traceback
 import logging
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 type DataPoint = list[str, np.array]
 #%%
@@ -20,6 +21,18 @@ def _create_graph_embedding(embeddings):
     graph_embedding = np.mean(vectors, axis=0)
     return graph_embedding
 # %%
+
+def process_file(directory_path, filename):
+    """Processes a single file to extract its graph embedding."""
+    try:
+        gensim_model = owl2vec_star.extract_owl2vec_model(
+            f"{directory_path}{filename}", "./default.cfg", True, True, True
+        )
+        graph_embedding = _create_graph_embedding(gensim_model.wv)
+        return filename, graph_embedding
+    except Exception as exception:
+        traceback.print_exc()
+        return None
 
 def _get_embeddings(directory_path : str, number : int = None) -> list[DataPoint]:
     '''
@@ -44,21 +57,24 @@ def _get_embeddings(directory_path : str, number : int = None) -> list[DataPoint
     Raises: 
         any Exceptions during processing are logged and skipped
     '''
-    rows = []
-
     filenames = os.listdir(directory_path)
     iterations = number if number else len(filenames)
 
-    for i in tqdm(range(iterations)):
-        print(filenames[i])
-        try:
-            gensim_model = owl2vec_star.extract_owl2vec_model(f"{directory_path}{filenames[i]}", "./default.cfg", True, True, True)
-            graph_embedding = _create_graph_embedding(gensim_model.wv)
-            rows.append([filenames[i], graph_embedding])
-        except Exception as exception:
-            traceback.print_exc()
-            continue
-        
+    rows = {}
+
+    with ThreadPoolExecutor() as executor:
+        # Submit tasks for each file
+        futures = [
+            executor.submit(process_file, directory_path, filenames[i])
+            for i in range(iterations)
+        ]
+
+        for future in tqdm(as_completed(futures), total=iterations):
+            result = future.result()
+            if result:
+                filename, graph_embedding = result
+                rows[filename] = graph_embedding
+
     return rows
 
 def main():
