@@ -10,6 +10,7 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 type DataPoint = list[str, np.array]
+type Embedding = np.array
 #%%
 def _create_graph_embedding(embeddings):
     ''' 
@@ -34,35 +35,26 @@ def process_file(directory_path, filename):
         traceback.print_exc()
         return None
 
-def _get_embeddings(directory_path : str, number : int = None) -> list[DataPoint]:
-    '''
-    Generate embeddings for OWL files in a directory.
-
-    This method processes `.owl` files in the specified directory and generates embeddings 
-    using the OWL2Vec* model. The embeddings are returned as a list of file names and 
-    their corresponding graph embeddings.
+def _get_embeddings(directory_path: str, number: int = None, workers: int = None) -> dict[str, Embedding]:
+    """
+    Generate embeddings for OWL files in a directory using multithreading.
 
     Args:
         directory_path (str): Path to the directory containing `.owl` files.
-        number (int, optional): Number of files to process. Defaults to `None`, 
-            meaning all files in the directory are processed.
-        consistency (bool, optional): Currently unused parameter. Reserved for 
-            future use.
+        number (int, optional): Number of files to process. Defaults to `None`, meaning all files.
+        workers (int, optional): Number of threads to use for parallel processing. Defaults to `os.cpu_count()`.
 
     Returns:
-        list[list[str, np.array]]: A list of pairs where each pair consists of:
-            - The file name (str) of the processed `.owl` file.
-            - The corresponding graph embedding (np.array).    
-
-    Raises: 
-        any Exceptions during processing are logged and skipped
-    '''
+        dict: A dictionary with file names as keys and their graph embeddings as values.
+    """
     filenames = os.listdir(directory_path)
     iterations = number if number else len(filenames)
+    max_workers = workers if workers else os.cpu_count()
 
     rows = {}
 
-    with ThreadPoolExecutor() as executor:
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit tasks for each file
         futures = [
             executor.submit(process_file, directory_path, filenames[i])
@@ -77,21 +69,27 @@ def _get_embeddings(directory_path : str, number : int = None) -> list[DataPoint
 
     return rows
 
-def main():
-    logging.info("Started Process...")
-    logging.info("Embedding Consistent Ontologies...")
-    embeddings_consistent : list[DataPoint]= _get_embeddings("../GLaMoR/data/ont_modules/")
-    logging.info("Embedding Inconsistent Ontologies...")
-    embeddings_inconsistent : list[DataPoint] = _get_embeddings("../GLaMoR/data./ont_modules_inconsistent/")
-    logging.info("Finished Embeddings.")
-    embeddings = embeddings_consistent + embeddings_inconsistent
-    dataset_df : pd.DataFrame = pd.read_csv("../GLaMoR/data/dataset.csv", header=["name", "consistency", "body"])
-    embedding_dict : dict[str:np.array] = {name : embedding for [name, embedding] in embeddings}
+def _add_embedding_to_dataframe(dataframe_path: str, embeddings: dict[str, Embedding]) -> pd.DataFrame:
+    dataset_df: pd.DataFrame = pd.read_csv(dataframe_path, names=["name", "consistency", "body"], header=0)
     embedding_column : list[np.array] = []
-
+    
     for entry in dataset_df["name"]:
-        embedding_column.append(embedding_dict[entry])
+        embedding_column.append(embeddings.get(entry, np.zeros_like(next(iter(embeddings.values())))))
+
 
     dataset_df["embedding"] = embedding_column
 
+    return dataset_df
+
+def main():
+    logging.info("Started Process...")
+    logging.info("Embedding Consistent Ontologies...")
+    embeddings_consistent : dict[str, Embedding]= _get_embeddings("../GLaMoR/data/ont_modules/")
+    logging.info("Embedding Inconsistent Ontologies...")
+    embeddings_inconsistent : dict[str, Embedding] = _get_embeddings("../GLaMoR/data./ont_modules_inconsistent/")
+    logging.info("Finished Embeddings...")
+    embeddings = {**embeddings_consistent, **embeddings_inconsistent}
+
+    logging.info("Building DataFrame...")
+    dataset_df = _add_embedding_to_dataframe("../GLaMoR/data/dataset.csv", embeddings)
     dataset_df.to_csv("dataset.csv")
