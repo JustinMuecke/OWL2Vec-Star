@@ -37,7 +37,7 @@ def process_file(filename):
         traceback.print_exc()
         return None
 
-def _get_embeddings(file_names : List[int], number: int = None, workers: int = None) -> dict[str, np.array]:
+def _get_embeddings(file_names : List[int], number: int = None, workers: int = None) -> Dict[str, np.array]:
     """
     Generate embeddings for OWL files in a directory using multithreading.
 
@@ -64,7 +64,7 @@ def _get_embeddings(file_names : List[int], number: int = None, workers: int = N
 
     return embeddings
 
-def _add_embedding_to_dataframe(dataframe : pd.DataFrame, embeddings: dict[str, np.array]) -> pd.DataFrame:
+def _add_embedding_to_dataframe(dataframe : pd.DataFrame, embeddings: Dict[str, np.array]) -> pd.DataFrame:
     default_embedding = np.zeros(next(iter(embeddings.values())).shape)
     dataframe["embedding"] = dataframe["file_name"].apply(
         lambda x: embeddings.get(x, default_embedding)
@@ -74,21 +74,18 @@ def _add_embedding_to_dataframe(dataframe : pd.DataFrame, embeddings: dict[str, 
 def main():
 
     MAX_LENGTH = 4096
-    df = pd.read_csv("../dataset.csv", header=0)
+    df = pd.read_csv("../GLaMoR/data/dataset.csv", header=0)
 
-    subset_df = df.loc(df["tokenized_length"] < MAX_LENGTH)
-
-    file_names = subset_df["file_name"].values
-    
-    print(file_names)
-
+    subset_df = df[df["tokenized_length"] < MAX_LENGTH]
+    file_names = subset_df["file_name"].tolist()
     logging.info("Started Process...")
-    logging.info("Embedding Ontologies Ontologies...")
-    embeddings : dict[str, Embedding]= _get_embeddings("")
+    logging.info("Embedding Ontologies...")
+    embeddings = _get_embeddings(file_names)
     logging.info("Finished Embeddings...")
+
     logging.info("Building DataFrame...")
     dataset_df = _add_embedding_to_dataframe(subset_df, embeddings)
-    dataset_df.to_csv("dataset.csv")
+    dataset_df.to_csv("dataset.csv", index=False)
 
 if __name__ == "__main__":
     main()
