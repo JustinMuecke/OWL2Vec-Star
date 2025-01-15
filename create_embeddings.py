@@ -91,3 +91,6 @@ def main():
     logging.info("Building DataFrame...")
     dataset_df = _add_embedding_to_dataframe(subset_df, embeddings)
     dataset_df.to_csv("dataset.csv")
+
+if __name__ == "__main__":
+    main()
