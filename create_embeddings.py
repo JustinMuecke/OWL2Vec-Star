@@ -12,8 +12,6 @@ from typing import List, Dict
 
 PREFIXES : List[str] = ["AIO","EID","OIL","OILWI","OILWPI","UE","UEWI1","UEWI2","UEWPI","UEWIP","SOSINETO","CSC","OOR","OOD"]
 
-type DataPoint = list[str, np.array]
-type Embedding = np.array
 #%%
 def _create_graph_embedding(embeddings):
     ''' 
@@ -39,11 +37,11 @@ def process_file(filename):
         traceback.print_exc()
         return None
 
-def _get_embeddings(file_names : List[int], number: int = None, workers: int = None) -> dict[str, Embedding]:
+def _get_embeddings(file_names : List[int], number: int = None, workers: int = None) -> dict[str, np.array]:
     """
     Generate embeddings for OWL files in a directory using multithreading.
 
-    Args:
+    Args:ChatGPT
         directory_path (str): Path to the directory containing `.owl` files.
         number (int, optional): Number of files to process. Defaults to `None`, meaning all files.
         workers (int, optional): Number of threads to use for parallel processing. Defaults to `os.cpu_count()`.
@@ -66,7 +64,7 @@ def _get_embeddings(file_names : List[int], number: int = None, workers: int = N
 
     return embeddings
 
-def _add_embedding_to_dataframe(dataframe : pd.DataFrame, embeddings: dict[str, Embedding]) -> pd.DataFrame:
+def _add_embedding_to_dataframe(dataframe : pd.DataFrame, embeddings: dict[str, np.array]) -> pd.DataFrame:
     default_embedding = np.zeros(next(iter(embeddings.values())).shape)
     dataframe["embedding"] = dataframe["file_name"].apply(
         lambda x: embeddings.get(x, default_embedding)
