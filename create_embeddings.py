@@ -29,7 +29,7 @@ def process_file(filename):
     directory_path = "../GLaMoR/data./ont_modules_inconsistent/" if filename.split("_")[0] in PREFIXES else "../GLaMoR/data/ont_modules/"
     try:
         gensim_model = owl2vec_star.extract_owl2vec_model(
-            f"{directory_path}{filename}", "./default.cfg", True, True, True
+            f"{directory_path}{filename.split(".")[0] + ".owl"}", "./default.cfg", True, True, True
         )
         graph_embedding = _create_graph_embedding(gensim_model.wv)
         return filename, graph_embedding
